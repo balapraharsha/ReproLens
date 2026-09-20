@@ -1,0 +1,14 @@
+@"
+.env
+*.pem
+.aws/
+lambda_packages/
+lambda_build/
+*.zip
+test-event.json
+test-create.json
+test-investigate.json
+test-create-response.json
+create-response.json
+investigate-response.json
+"@ | Add-Content .gitignore

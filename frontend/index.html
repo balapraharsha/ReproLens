@@ -1,411 +1,716 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ReproLens — Cross-Artifact Investigation for ML Experiments</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReproLens — AI-Powered ML Experiment Forensics</title>
+  <meta name="description" content="Find why your ML experiment failed — with evidence. ReproLens correlates experiment artifacts, detects contradictions, and reconstructs root causes.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="detective-theme">
 
-<!-- Icon sprite -->
-<svg width="0" height="0" style="position:absolute">
-<defs>
-<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10v9h13v-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5ZM3 13l9 5 9-5M3 8v5M21 8v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
-<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.8L12 17.5 10.2 11.8 4.5 10l5.7-1.4L12 3Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
-<symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8v8l-9 5-9-5V8l9-5 9 5ZM3 8l9 5 9-5M12 13v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-<symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6V3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
-<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M11 20V4M18 20v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-<symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 5.5V18c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5V5.5M4.5 12c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
-<symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
-<symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.5 22 20H2L12 3.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-<symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 12.5l2.5 2.5L16.5 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2.5v2.3M12 19.2v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.3M19.2 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
-<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
-<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-<symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.5L4.5 19a1.5 1.5 0 0 0 1.3 2.2h12.4a1.5 1.5 0 0 0 1.3-2.2L14 9.5V3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
-<linearGradient id="grad-line" x1="0" y1="0" x2="1" y2="1">
-  <stop offset="0" stop-color="#4f46e5"/>
-  <stop offset="1" stop-color="#7c3aed"/>
-</linearGradient>
-</defs>
+<!-- Icon Sprite -->
+<svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+  </symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 12h14"/><path d="M12 5v14"/>
+  </symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+  </symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+  </symbol>
+  <symbol id="i-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>
+  </symbol>
+  <symbol id="i-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/>
+  </symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>
+  </symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>
+  </symbol>
+  <symbol id="i-alert-triangle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>
+  </symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/>
+  </symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+  </symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m6 9 6 6 6-6"/>
+  </symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/>
+  </symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+  </symbol>
+  <symbol id="i-bar-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>
+  </symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>
+  </symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+  </symbol>
+  <symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/>
+  </symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+  </symbol>
+  <symbol id="i-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
+  </symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+  </symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>
+  </symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/>
+  </symbol>
+  <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+  </symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+  </symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </symbol>
+  <symbol id="i-git-branch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>
+  </symbol>
+  <symbol id="i-list-checks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>
+  </symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+  </symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+  </symbol>
+  <symbol id="i-external-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+  </symbol>
 </svg>
 
-<div id="shell">
-
-  <aside id="sidenav">
-    <div class="brand-row">
-      <span class="brand-mark"><svg class="icon"><use href="#i-spark"/></svg></span>
-      <div>
-        <div class="brand-name">ReproLens</div>
-        <div class="brand-sub">Find the real cause. Faster.</div>
-      </div>
+<!-- TOP NAVIGATION -->
+<nav class="topnav" role="navigation" aria-label="Main navigation">
+  <div class="topnav-inner">
+    <div class="topnav-brand">
+      <span class="case-stamp" aria-hidden="true">CASE</span>
+      <div class="brand-mark"><svg class="icon"><use href="#i-sparkles"/></svg></div>
+      <span class="brand-name">ReproLens</span>
+    </div>
+    
+    <div class="topnav-links" id="nav-links">
+      <button class="nav-link active" data-page="page-home"><svg class="icon icon-sm"><use href="#i-home"/></svg>Home</button>
+      <button class="nav-link" data-page="page-investigations"><svg class="icon icon-sm"><use href="#i-layers"/></svg>Investigations</button>
+      <button class="nav-link" data-page="page-examples"><svg class="icon icon-sm"><use href="#i-flask"/></svg>Examples</button>
     </div>
 
-    <ul class="nav-list">
-      <li data-page="page-home" class="nav-item active"><svg class="icon"><use href="#i-home"/></svg>Home</li>
-      <li data-page="page-new" class="nav-item"><svg class="icon"><use href="#i-plus"/></svg>New Investigation</li>
-      <li data-page="page-investigations" class="nav-item"><svg class="icon"><use href="#i-layers"/></svg>Investigations</li>
-      <li data-page="page-examples" class="nav-item"><svg class="icon"><use href="#i-grid"/></svg>Example Cases</li>
-      <li data-page="page-how" class="nav-item"><svg class="icon"><use href="#i-spark"/></svg>How It Works</li>
-      <li data-page="page-aws" class="nav-item"><svg class="icon"><use href="#i-box"/></svg>AWS Architecture</li>
-      <li data-page="page-about" class="nav-item"><svg class="icon"><use href="#i-info"/></svg>About</li>
-    </ul>
-
-    <div class="nav-footer">
-      <button id="theme-toggle" class="theme-toggle" title="Toggle theme">
-        <svg class="icon"><use href="#i-sun"/></svg>
-        <svg class="icon"><use href="#i-moon"/></svg>
+    <div class="topnav-actions">
+      <button class="search-trigger" id="search-trigger" aria-label="Search">
+        <svg class="icon icon-sm"><use href="#i-search"/></svg>
+        <span>Search...</span>
+        <kbd>⌘K</kbd>
       </button>
-      <span class="muted small">v1.0 · no login required</span>
+      <span id="connection-badge" class="conn-badge conn-idle">● Idle</span>
+      <span id="investigation-id-badge" class="mono muted small"></span>
+      <button class="btn btn-primary btn-new" data-nav="page-new">
+        <svg class="icon icon-sm"><use href="#i-plus"/></svg>New Investigation
+      </button>
+      <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
+        <svg class="icon"><use href="#i-menu"/></svg>
+      </button>
     </div>
-  </aside>
+  </div>
+</nav>
 
-  <div id="main-column">
-
-    <header id="topbar">
-      <div class="search-box">
-        <svg class="icon"><use href="#i-search"/></svg>
-        <input id="global-search" type="text" placeholder="Search investigations or example cases…" />
-      </div>
-      <div class="topbar-right">
-        <span id="connection-badge" class="conn-badge conn-idle">● Idle</span>
-        <span id="investigation-id-badge" class="mono muted small"></span>
-      </div>
-    </header>
-
-    <main id="content">
-
-      <!-- ============ HOME ============ -->
-      <section id="page-home" class="page active">
-        <div class="hero">
-          <div class="hero-glow"></div>
-          <div class="hero-text">
-            <div class="eyebrow">ML experiments leave evidence.</div>
-            <h1>ReproLens<br/><span class="grad-text">connects it.</span></h1>
-            <p class="hero-sub">Upload your experiment artifacts and get an evidence-backed diagnosis — every claim traceable to the file and line that supports it.</p>
-            <div class="hero-actions">
-              <button class="btn-primary btn-lg" data-nav="page-new"><svg class="icon"><use href="#i-plus"/></svg>Start new investigation</button>
-              <button class="btn-secondary btn-lg" data-nav="page-examples"><svg class="icon"><use href="#i-flask"/></svg>Try an example case</button>
-            </div>
-          </div>
-          <div class="hero-diagram" id="hero-diagram">
-            <svg id="hero-connectors" class="connectors"></svg>
-            <div class="hero-chips">
-              <div class="hero-chip c-indigo" data-node="hc1"><svg class="icon"><use href="#i-file"/></svg>Config</div>
-              <div class="hero-chip c-blue" data-node="hc2"><svg class="icon"><use href="#i-chart"/></svg>Training Logs</div>
-              <div class="hero-chip c-teal" data-node="hc3"><svg class="icon"><use href="#i-db"/></svg>Dataset</div>
-              <div class="hero-chip c-amber" data-node="hc4"><svg class="icon"><use href="#i-cpu"/></svg>Environment</div>
-              <div class="hero-chip c-red" data-node="hc5"><svg class="icon"><use href="#i-warn"/></svg>Tracebacks</div>
-            </div>
-            <div class="hero-caption left">Scattered artifacts</div>
-            <div class="hero-orb" data-node="hero-orb"><span>ReproLens</span></div>
-            <div class="hero-output" data-node="hero-output"><svg class="icon"><use href="#i-spark"/></svg>Clear insights</div>
-            <div class="hero-caption right">Evidence → Insight → Clarity</div>
-          </div>
-        </div>
-
-        <div class="section-row">
-          <h2>Recent investigations</h2>
-          <button class="link-btn" data-nav="page-investigations">View all <svg class="icon"><use href="#i-arrow-right"/></svg></button>
-        </div>
-        <div id="recent-investigations" class="card-grid"></div>
-
-        <div class="section-row" style="margin-top:2.5rem;">
-          <div class="eyebrow">How it works</div>
-        </div>
-        <h2 class="how-heading">A structured investigation, not just an answer.</h2>
-        <div class="steps-grid">
-          <div class="step-card">
-            <div class="step-icon c-indigo"><svg class="icon"><use href="#i-file"/></svg></div>
-            <div class="step-num">1</div>
-            <div class="step-title">Upload</div>
-            <p>Add your experiment artifacts — config, logs, dataset metadata, environment, traceback.</p>
-          </div>
-          <div class="step-arrow"><svg class="icon"><use href="#i-arrow-right"/></svg></div>
-          <div class="step-card">
-            <div class="step-icon c-blue"><svg class="icon"><use href="#i-chart"/></svg></div>
-            <div class="step-num">2</div>
-            <div class="step-title">Analyze</div>
-            <p>Deterministic checks run first to establish facts, then Bedrock investigates the relationships.</p>
-          </div>
-          <div class="step-arrow"><svg class="icon"><use href="#i-arrow-right"/></svg></div>
-          <div class="step-card">
-            <div class="step-icon c-amber"><svg class="icon"><use href="#i-spark"/></svg></div>
-            <div class="step-num">3</div>
-            <div class="step-title">Diagnose</div>
-            <p>Get an evidence-backed diagnosis with a stated confidence level and cited sources.</p>
-          </div>
-          <div class="step-arrow"><svg class="icon"><use href="#i-arrow-right"/></svg></div>
-          <div class="step-card">
-            <div class="step-icon c-teal"><svg class="icon"><use href="#i-check"/></svg></div>
-            <div class="step-num">4</div>
-            <div class="step-title">Verify</div>
-            <p>Explore the evidence graph, competing hypotheses, and recommended checks yourself.</p>
-          </div>
-        </div>
-
-        <blockquote class="pull-quote">"ReproLens doesn't just tell you what happened. It shows you why — with real evidence."</blockquote>
-      </section>
-
-      <!-- ============ NEW INVESTIGATION ============ -->
-      <section id="page-new" class="page">
-        <h1 class="page-title">New investigation</h1>
-        <div class="panel case-file">
-          <label for="experiment-name">Experiment name</label>
-          <input id="experiment-name" type="text" placeholder="e.g. DALES semantic segmentation" />
-
-          <div class="upload-label-row">
-            <label>Experiment evidence</label>
-            <span class="muted small" id="upload-count">0 of 5 uploaded</span>
-          </div>
-          <div class="upload-grid" id="upload-grid"></div>
-
-          <button id="investigate-btn" class="btn-primary btn-lg" disabled>Investigate <svg class="icon"><use href="#i-arrow-right"/></svg></button>
-          <p class="hint">At least one artifact is required. Missing artifacts don't fail the investigation — they surface as missing information in the result.</p>
-        </div>
-      </section>
-
-      <!-- ============ PROGRESS ============ -->
-      <section id="page-progress" class="page">
-        <h1 class="page-title" id="progress-title">Investigating…</h1>
-
-        <div class="pflow" id="pflow">
-          <svg id="pflow-connectors" class="connectors"></svg>
-          <div class="pflow-artifacts" id="pflow-artifacts"></div>
-          <div class="pflow-node" data-flow="bundle" data-node="pf-bundle"><svg class="icon"><use href="#i-layers"/></svg>Evidence bundle</div>
-          <div class="pflow-node" data-flow="preflight" data-node="pf-preflight"><svg class="icon"><use href="#i-check"/></svg>Preflight checks</div>
-          <div class="pflow-node" data-flow="bedrock" data-node="pf-bedrock"><svg class="icon"><use href="#i-spark"/></svg>Bedrock reasoning</div>
-        </div>
-
-        <div class="progress-stages">
-          <div class="progress-stage" id="pstage-1" data-state="pending">
-            <div class="progress-stage-num">01</div>
-            <div class="progress-stage-dot"></div>
-            <div class="progress-stage-label">Ingesting</div>
-            <div class="progress-stage-meta" id="pmeta-1">artifacts received</div>
-          </div>
-          <div class="progress-stage" id="pstage-2" data-state="pending">
-            <div class="progress-stage-num">02</div>
-            <div class="progress-stage-dot"></div>
-            <div class="progress-stage-label">Correlating</div>
-            <div class="progress-stage-meta" id="pmeta-2">deterministic checks</div>
-          </div>
-          <div class="progress-stage" id="pstage-3" data-state="pending">
-            <div class="progress-stage-num">03</div>
-            <div class="progress-stage-dot"></div>
-            <div class="progress-stage-label">Investigating</div>
-            <div class="progress-stage-meta" id="pmeta-3">Bedrock reasoning</div>
-          </div>
-        </div>
-        <p class="hint">Each stage only turns on after the backend has actually completed it. Nothing here is simulated.</p>
-      </section>
-
-      <!-- ============ RESULT ============ -->
-      <section id="page-result" class="page">
-        <div id="result-zone">
-
-          <div id="result-case" class="result-col">
-            <div class="result-col-label">Case</div>
-            <h3 class="col-h3">Pre-investigation checks</h3>
-            <div id="preflight-list" class="preflight-list"></div>
-
-            <h3 class="col-h3">Competing hypotheses</h3>
-            <div id="hypotheses-list" class="hypotheses-list"></div>
-
-            <h3 class="col-h3">Recommended checks</h3>
-            <ul id="checks-list" class="checks-list"></ul>
-          </div>
-
-          <div id="result-main" class="result-col">
-            <div class="result-col-label">Investigation</div>
-
-            <div class="finding-card">
-              <div class="finding-top">
-                <span id="status-badge" class="status-badge"></span>
-                <span id="coverage-fraction" class="mono muted small"></span>
-              </div>
-              <h2 id="primary-diagnosis-text"></h2>
-              <p id="diagnosis-summary" class="diagnosis-summary"></p>
-              <div class="finding-stats" id="finding-stats"></div>
-            </div>
-
-            <div class="confidence-panel">
-              <div class="confidence-label-row">
-                <span>Confidence</span>
-                <span id="confidence-level-text" class="mono"></span>
-              </div>
-              <div class="confidence-bar"><div id="confidence-fill" class="confidence-fill"></div></div>
-              <div class="confidence-stats" id="confidence-stats"></div>
-            </div>
-
-            <div id="missing-info-banner" class="missing-info-banner" style="display:none;">
-              <svg class="icon"><use href="#i-warn"/></svg>
-              <div>
-                <div id="missing-info-title"></div>
-                <ul id="missing-info-list"></ul>
-              </div>
-            </div>
-
-            <h3 class="col-h3">Evidence graph</h3>
-            <div class="evidence-graph-panel">
-              <div id="evidence-graph" class="evidence-graph">
-                <svg id="evidence-connectors" class="connectors"></svg>
-              </div>
-            </div>
-
-            <button id="why-btn" class="btn-secondary">Why this diagnosis?</button>
-            <div id="explanation-block" class="explanation-block" style="display:none;">
-              <div class="explanation-title">Why?</div>
-              <p id="explanation-text"></p>
-            </div>
-
-            <details class="aws-disclosure">
-              <summary>▸ Powered by AWS</summary>
-              <div class="aws-flow">
-                <div class="aws-node">Amplify</div>
-                <div class="aws-arrow">↓</div>
-                <div class="aws-node">API Gateway</div>
-                <div class="aws-arrow">↓</div>
-                <div class="aws-node">Lambda</div>
-                <div class="aws-branches">
-                  <div class="aws-node small">S3</div>
-                  <div class="aws-node small">Preflight engine</div>
-                  <div class="aws-node small accent">Bedrock</div>
-                  <div class="aws-node small">DynamoDB</div>
-                </div>
-              </div>
-            </details>
-          </div>
-
-          <div class="result-col result-col-source">
-            <div class="result-col-label">Source</div>
-            <aside id="evidence-inspector" class="evidence-inspector" data-open="false">
-              <div class="inspector-header">
-                <span>Source</span>
-                <button id="inspector-close" class="inspector-close">✕</button>
-              </div>
-              <div id="inspector-artifact" class="inspector-artifact mono"></div>
-              <div id="inspector-location" class="inspector-location mono"></div>
-              <pre id="inspector-source" class="inspector-source mono"></pre>
-              <div id="inspector-significance" class="inspector-significance"></div>
-            </aside>
-            <div id="source-placeholder" class="source-placeholder">
-              <svg class="icon"><use href="#i-search"/></svg>
-              <p>Click any evidence node in the graph to inspect its exact source line.</p>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      <!-- ============ INVESTIGATIONS (full history) ============ -->
-      <section id="page-investigations" class="page">
-        <h1 class="page-title">Investigations</h1>
-        <div id="all-investigations" class="card-grid"></div>
-        <p id="no-investigations-msg" class="hint" style="display:none;">No investigations yet — start one, or try an example case.</p>
-      </section>
-
-      <!-- ============ EXAMPLE CASES ============ -->
-      <section id="page-examples" class="page">
-        <h1 class="page-title">Example cases</h1>
-        <p class="hint" style="margin-bottom:1.5rem;">These load real fixture files through the actual S3 → Lambda → Bedrock pipeline — nothing here is a canned response.</p>
-        <div class="card-grid" id="example-grid">
-          <div class="example-card" data-fixture="03_silent_generalization_failure">
-            <div class="status-dot status-suspicious"></div>
-            <div class="example-title">Silent generalization failure</div>
-            <p>Training completes with no exception, but validation performance quietly falls apart.</p>
-          </div>
-          <div class="example-card" data-fixture="01_dataset_config_mismatch">
-            <div class="status-dot status-suspicious"></div>
-            <div class="example-title">Dataset / config mismatch</div>
-            <p>The model is configured for one class count; the dataset reports another.</p>
-          </div>
-          <div class="example-card" data-fixture="02_environment_incompatibility">
-            <div class="status-dot status-failed"></div>
-            <div class="example-title">CUDA incompatibility</div>
-            <p>The runtime CUDA version doesn't match the compiled extension's target version.</p>
-          </div>
-          <div class="example-card" data-fixture="05_contradictory_evidence">
-            <div class="status-dot status-suspicious"></div>
-            <div class="example-title">Contradictory evidence</div>
-            <p>Three different class counts across three artifacts — no single confident guess.</p>
-          </div>
-          <div class="example-card" data-fixture="06_healthy_experiment">
-            <div class="status-dot status-healthy"></div>
-            <div class="example-title">Healthy experiment</div>
-            <p>Internally consistent artifacts — proves ReproLens doesn't manufacture problems.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- ============ HOW IT WORKS ============ -->
-      <section id="page-how" class="page">
-        <h1 class="page-title">How it works</h1>
-        <div class="prose">
-          <p>Debugging rarely fails because there's no information — it fails because the information is scattered. ReproLens takes five artifacts from an ML experiment and correlates them, rather than asking a model to summarize each one in isolation.</p>
-          <h3>1. Deterministic checks run first</h3>
-          <p>Before Bedrock ever sees the evidence, rule-based checks compare facts directly — for example, the class count in your config against the class count in your dataset metadata. These are verified facts, not AI guesses.</p>
-          <h3>2. Bedrock investigates the relationships</h3>
-          <p>Amazon Bedrock, using strict tool use, receives the deterministic findings plus the full evidence bundle and returns a structured diagnosis — every claim citing a specific artifact and field.</p>
-          <h3>3. You verify it yourself</h3>
-          <p>Every evidence node in the graph is clickable and opens the exact source line. Competing hypotheses are shown, not hidden. When the evidence genuinely isn't enough, ReproLens says so instead of guessing.</p>
-        </div>
-      </section>
-
-      <!-- ============ AWS ARCHITECTURE ============ -->
-      <section id="page-aws" class="page">
-        <h1 class="page-title">AWS architecture</h1>
-        <div class="aws-flow standalone">
-          <div class="aws-node">Browser</div>
-          <div class="aws-arrow">↓</div>
-          <div class="aws-node">Amplify Hosting</div>
-          <div class="aws-arrow">↓</div>
-          <div class="aws-node">API Gateway</div>
-          <div class="aws-arrow">↓</div>
-          <div class="aws-node">Lambda</div>
-          <div class="aws-branches">
-            <div class="aws-node small">S3 — artifacts</div>
-            <div class="aws-node small">Preflight engine</div>
-            <div class="aws-node small accent">Bedrock — diagnosis</div>
-            <div class="aws-node small">DynamoDB — history, async</div>
-          </div>
-        </div>
-        <div class="prose">
-          <p>Bedrock is the reasoning engine, not decoration — every diagnosis is a schema-constrained tool call, validated locally against the same JSON Schema used to build the request. DynamoDB history writes are deliberately kept off the critical path: a history failure never blocks a diagnosis response.</p>
-        </div>
-      </section>
-
-      <!-- ============ ABOUT ============ -->
-      <section id="page-about" class="page">
-        <h1 class="page-title">About</h1>
-        <div class="prose">
-          <p>ReproLens was built for First Commit (AWS × WeMakeDevs, Bharat Builds Tour), Ship It track.</p>
-          <p><strong>Honestly stated limitations:</strong> validated against 6 synthetic fixtures, not real-world data. Scoped to PyTorch-shaped config/log conventions. No authentication — this demo has no login because none exists yet, not because it was hidden.</p>
-        </div>
-      </section>
-
-      <!-- ============ ERROR ============ -->
-      <section id="page-error" class="page">
-        <h1 class="page-title error-title">Investigation failed</h1>
-        <p id="error-message"></p>
-        <p id="error-detail" class="hint"></p>
-        <p class="hint">Investigation ID: <span id="error-investigation-id" class="mono"></span></p>
-        <button id="retry-btn" class="btn-primary">Try again</button>
-      </section>
-
-    </main>
+<!-- SEARCH MODAL (hidden by default) -->
+<div class="search-modal" id="search-modal" role="dialog" aria-label="Search investigations" style="display:none">
+  <div class="search-modal-backdrop"></div>
+  <div class="search-modal-content">
+    <div class="search-modal-input-row">
+      <svg class="icon"><use href="#i-search"/></svg>
+      <input id="global-search" type="text" placeholder="Search investigations or example cases…" autofocus />
+    </div>
+    <div class="search-modal-results" id="search-results"></div>
   </div>
 </div>
+
+<!-- MAIN CONTENT -->
+<main id="content">
+
+  <!-- ============ HOME / LANDING ============ -->
+  <section id="page-home" class="page active">
+    
+    <!-- HERO -->
+    <div class="hero detective-hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="detective-scene" aria-hidden="true">
+        <div class="desk-lamp"></div>
+        <div class="evidence-board">
+          <span class="pin pin-a"></span><span class="pin pin-b"></span><span class="pin pin-c"></span>
+          <span class="red-string string-a"></span><span class="red-string string-b"></span><span class="red-string string-c"></span>
+          <div class="case-note note-config">CONFIG</div>
+          <div class="case-note note-data">DATASET</div>
+          <div class="case-note note-logs">LOGS</div>
+          <div class="case-note note-root">ROOT CAUSE</div>
+          <div class="case-photo">
+            <span class="photo-silhouette"></span>
+            <small>REPROLENS<br>AI INVESTIGATION</small>
+          </div>
+        </div>
+        <div class="magnifier"><span></span></div>
+        <div class="fingerprint-mark">◉</div>
+      </div>
+      <div class="hero-content" data-animate="hero">
+        <div class="hero-eyebrow detective-eyebrow">
+          <span class="eyebrow-dot"></span>
+          CASE FILE • AI-POWERED ML FORENSICS
+        </div>
+        <h1>Find the <span class="highlight grad-text">failure.</span><br>Trace the <span class="highlight grad-text">evidence.</span></h1>
+        <p class="hero-sub">ReproLens investigates your ML experiment like a detective investigates a case — connecting artifacts, exposing contradictions, and reconstructing the most likely root cause.</p>
+        <div class="hero-case-meta"><span>CASE #RL-2048</span><span>•</span><span>UNDER INVESTIGATION</span></div>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-lg" data-nav="page-new">
+            Start Investigation
+            <svg class="icon"><use href="#i-arrow-right"/></svg>
+          </button>
+          <a href="#how-it-works" class="btn btn-secondary btn-lg" id="explore-how-btn">
+            Explore How It Works
+          </a>
+        </div>
+      </div>
+
+      <!-- INVESTIGATION GRAPH -->
+      <div class="hero-graph" id="hero-diagram" aria-label="Investigation flow diagram" data-animate="graph">
+        <svg id="hero-connectors" class="connectors" aria-hidden="true"></svg>
+        <div class="graph-nodes">
+          <!-- Artifact nodes (left cluster) -->
+          <div class="graph-node graph-node--artifact" data-node="hc1" style="grid-area: n1;">
+            <svg class="icon node-icon"><use href="#i-file-text"/></svg>
+            <span>config.yaml</span>
+          </div>
+          <div class="graph-node graph-node--artifact" data-node="hc2" style="grid-area: n2;">
+            <svg class="icon node-icon"><use href="#i-database"/></svg>
+            <span>dataset_metadata.json</span>
+          </div>
+          <div class="graph-node graph-node--artifact" data-node="hc3" style="grid-area: n3;">
+            <svg class="icon node-icon"><use href="#i-terminal"/></svg>
+            <span>train.log</span>
+          </div>
+          <div class="graph-node graph-node--artifact" data-node="hc4" style="grid-area: n4;">
+            <svg class="icon node-icon"><use href="#i-cpu"/></svg>
+            <span>requirements.txt</span>
+          </div>
+          <div class="graph-node graph-node--artifact" data-node="hc5" style="grid-area: n5;">
+            <svg class="icon node-icon"><use href="#i-alert-triangle"/></svg>
+            <span>traceback.txt</span>
+          </div>
+          
+          <!-- AI node (center) -->
+          <div class="graph-node graph-node--ai" data-node="hero-orb" style="grid-area: ai;">
+            <svg class="icon node-icon"><use href="#i-sparkles"/></svg>
+            <span>ReproLens AI</span>
+          </div>
+          
+          <!-- Output nodes (right cluster) -->
+          <div class="graph-node graph-node--output" data-node="hero-out-1" style="grid-area: o1;">
+            <svg class="icon node-icon"><use href="#i-zap"/></svg>
+            <span>Root Cause</span>
+          </div>
+          <div class="graph-node graph-node--output" data-node="hero-out-2" style="grid-area: o2;">
+            <svg class="icon node-icon"><use href="#i-eye"/></svg>
+            <span>Evidence</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVESTIGATION STORY -->
+    <div class="section case-story-section" id="how-it-works" data-animate="section">
+      <div class="section-label">THE CASE METHOD</div>
+      <h2 class="section-heading">Turn a failed run into a solvable case.</h2>
+      <p class="section-sub">ReproLens doesn't just read a traceback. It reconstructs the chain of events across your experiment and separates verified clues from possible explanations.</p>
+
+      <div class="case-method-grid">
+        <article class="case-method-card case-method-card--primary">
+          <div class="case-method-number mono">01</div>
+          <div class="case-method-icon"><svg class="icon"><use href="#i-scan"/></svg></div>
+          <div>
+            <div class="case-method-kicker">THE CRIME SCENE</div>
+            <h3>Collect the clues.</h3>
+            <p>Config, dataset metadata, logs, dependencies and tracebacks become one investigation file.</p>
+          </div>
+          <div class="case-method-tags">
+            <span>config.yaml</span><span>train.log</span><span>traceback.txt</span>
+          </div>
+        </article>
+
+        <article class="case-method-card">
+          <div class="case-method-number mono">02</div>
+          <div class="case-method-icon"><svg class="icon"><use href="#i-git-branch"/></svg></div>
+          <div>
+            <div class="case-method-kicker">CONNECT THE DOTS</div>
+            <h3>Find contradictions.</h3>
+            <p>ReproLens compares signals across artifacts instead of treating every file as an isolated clue.</p>
+          </div>
+          <div class="case-method-signal"><span></span> Cross-artifact correlation</div>
+        </article>
+
+        <article class="case-method-card">
+          <div class="case-method-number mono">03</div>
+          <div class="case-method-icon"><svg class="icon"><use href="#i-zap"/></svg></div>
+          <div>
+            <div class="case-method-kicker">RECONSTRUCT THE EVENT</div>
+            <h3>Trace the root cause.</h3>
+            <p>Verified facts, competing hypotheses and AI reasoning are assembled into a defensible finding.</p>
+          </div>
+          <div class="case-method-signal"><span></span> Evidence-backed diagnosis</div>
+        </article>
+      </div>
+    </div>
+
+    <!-- EVIDENCE TRAIL -->
+    <div class="section evidence-trail-section" data-animate="section">
+      <div class="section-label">EVIDENCE TRAIL</div>
+      <h2 class="section-heading">See exactly why the case was solved.</h2>
+      <p class="section-sub">Every important conclusion points back to a source. The interface makes the reasoning inspectable instead of hiding it behind an AI response.</p>
+
+      <div class="evidence-trail">
+        <div class="evidence-file-stack">
+          <div class="evidence-file-card evidence-file-card--back">
+            <span class="mono">dataset_metadata.json</span>
+            <small>12 classes detected</small>
+          </div>
+          <div class="evidence-file-card evidence-file-card--middle">
+            <span class="mono">train.log</span>
+            <small>training interrupted</small>
+          </div>
+          <div class="evidence-file-card evidence-file-card--front">
+            <div class="evidence-file-top"><span class="mono">config.yaml</span><span class="case-stamp">CLUE</span></div>
+            <pre><span>model:</span>
+<span>  name: resnet50</span>
+<span class="evidence-highlight">  num_classes: 10</span>
+<span>  pretrained: true</span></pre>
+          </div>
+        </div>
+
+        <div class="evidence-verdict">
+          <div class="verdict-line"><span class="verdict-dot"></span> VERIFIED CONNECTION</div>
+          <h3>Configuration mismatch detected.</h3>
+          <p>The model expects <strong>10</strong> classes while the dataset metadata reports <strong>12</strong>. Two independent artifacts point to the same contradiction.</p>
+          <div class="verdict-proof">
+            <div><span class="mono">config.yaml</span><strong>10</strong></div>
+            <div class="proof-arrow">→</div>
+            <div><span class="mono">dataset_metadata.json</span><strong>12</strong></div>
+          </div>
+          <div class="verdict-footer">
+            <span>CONFIDENCE</span><strong>92%</strong>
+            <span class="confidence-ring"><i></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WHY REPROLENS -->
+    <div class="section why-section" data-animate="section">
+      <div class="section-row">
+        <div>
+          <div class="section-label">WHY REPROLENS</div>
+          <h2 class="section-heading">Not just an answer. A case you can defend.</h2>
+          <p class="section-sub">When an experiment fails, knowing the error is not enough. You need to know what supports the conclusion and what to check next.</p>
+        </div>
+      </div>
+
+      <div class="why-grid">
+        <article class="why-card">
+          <div class="why-card-top"><span class="why-index mono">A</span><svg class="icon"><use href="#i-shield-check"/></svg></div>
+          <h3>Verified first</h3>
+          <p>Deterministic preflight checks establish concrete facts before AI reasoning begins.</p>
+          <div class="why-footer">FACTS BEFORE HYPOTHESES <span>01</span></div>
+        </article>
+        <article class="why-card">
+          <div class="why-card-top"><span class="why-index mono">B</span><svg class="icon"><use href="#i-git-branch"/></svg></div>
+          <h3>Correlated evidence</h3>
+          <p>Hidden contradictions emerge when configs, data, runtime signals and logs are examined together.</p>
+          <div class="why-footer">CONNECT THE CLUES <span>02</span></div>
+        </article>
+        <article class="why-card">
+          <div class="why-card-top"><span class="why-index mono">C</span><svg class="icon"><use href="#i-eye"/></svg></div>
+          <h3>Explainable verdict</h3>
+          <p>Every primary finding comes with evidence, confidence, alternatives and recommended next checks.</p>
+          <div class="why-footer">TRACE THE REASONING <span>03</span></div>
+        </article>
+      </div>
+    </div>
+
+    <!-- RECENT CASE FILES -->
+    <div class="section recent-section" data-animate="section">
+      <div class="section-row">
+        <div>
+          <div class="section-label">CASE FILES</div>
+          <h2 class="section-heading">Investigations worth reopening.</h2>
+        </div>
+        <button class="btn btn-ghost" data-nav="page-investigations">Open case archive <svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></button>
+      </div>
+      <div class="case-archive-intro">
+        <span class="case-archive-mark">ARCHIVE</span>
+        <p>Previous experiments stay searchable as case files — ready to inspect, compare and explain again.</p>
+      </div>
+      <div id="recent-investigations" class="card-grid"></div>
+    </div>
+  </section>
+
+  <!-- ============ NEW INVESTIGATION ============ -->
+  <section id="page-new" class="page">
+    <div class="upload-workspace">
+      <div class="upload-header">
+        <div>
+          <h1 class="page-title">New Investigation</h1>
+          <p class="page-subtitle">Upload the artifacts that describe your experiment.</p>
+        </div>
+      </div>
+      
+      <div class="panel" style="margin-bottom:24px">
+        <label for="experiment-name" class="input-label">Experiment name</label>
+        <input id="experiment-name" type="text" class="text-input" placeholder="e.g. ResNet-50 CIFAR training run" />
+      </div>
+
+      <div class="upload-label-row">
+        <span class="input-label">Experiment evidence</span>
+        <span class="muted small" id="upload-count">0 of 5 uploaded</span>
+      </div>
+      <div class="upload-grid" id="upload-grid">
+        <!-- Dynamically rendered by app.js -->
+      </div>
+
+      <div style="margin-top:32px; display:flex; flex-direction:column; gap:12px; align-items:flex-start;">
+        <button id="investigate-btn" class="btn btn-primary btn-lg" disabled>
+          Begin Investigation
+          <svg class="icon"><use href="#i-arrow-right"/></svg>
+        </button>
+        <p class="hint">At least one artifact is required. Missing artifacts are surfaced as missing information — they don't fail the investigation.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROGRESS / LOADING ============ -->
+  <section id="page-progress" class="page">
+    <div class="progress-container">
+      <h2 class="progress-heading" id="progress-title">Investigating…</h2>
+      
+      <div class="progress-graph" id="pflow">
+        <svg id="pflow-connectors" class="connectors" aria-hidden="true"></svg>
+        <div id="pflow-artifacts" class="pflow-artifacts"></div>
+        <div class="pflow-node" data-flow="bundle" data-node="pf-bundle">
+          <svg class="icon"><use href="#i-layers"/></svg><span>Evidence bundle</span>
+        </div>
+        <div class="pflow-node" data-flow="preflight" data-node="pf-preflight">
+          <svg class="icon"><use href="#i-shield-check"/></svg><span>Preflight checks</span>
+        </div>
+        <div class="pflow-node" data-flow="bedrock" data-node="pf-bedrock">
+          <svg class="icon"><use href="#i-sparkles"/></svg><span>AI Investigation</span>
+        </div>
+      </div>
+
+      <div class="progress-steps">
+        <div class="progress-step pending" id="pstage-1">
+          <div class="progress-step-dot"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg></div>
+          <div>
+            <div class="progress-step-label">Ingesting artifacts</div>
+            <div class="progress-step-meta small muted" id="pmeta-1">Waiting…</div>
+          </div>
+        </div>
+        <div class="progress-step pending" id="pstage-2">
+          <div class="progress-step-dot"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg></div>
+          <div>
+            <div class="progress-step-label">Correlating evidence</div>
+            <div class="progress-step-meta small muted" id="pmeta-2">Deterministic checks</div>
+          </div>
+        </div>
+        <div class="progress-step pending" id="pstage-3">
+          <div class="progress-step-dot"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg></div>
+          <div>
+            <div class="progress-step-label">AI investigation</div>
+            <div class="progress-step-meta small muted" id="pmeta-3">Bedrock reasoning</div>
+          </div>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:24px">Each stage only updates after the backend completes it. Nothing is simulated.</p>
+    </div>
+  </section>
+
+  <!-- ============ INVESTIGATION RESULT ============ -->
+  <section id="page-result" class="page">
+    <div id="result-zone" class="result-zone">
+      
+      <!-- Investigation Header -->
+      <div class="inv-header">
+        <div class="inv-header-left">
+          <button class="btn btn-ghost btn-sm" data-nav="page-investigations">
+            <svg class="icon icon-sm"><use href="#i-arrow-right" style="transform:rotate(180deg)"/></svg>
+            Investigations
+          </button>
+          <h2 class="inv-header-title" id="inv-title">Investigation</h2>
+          <span class="inv-header-id mono small muted" id="inv-header-id"></span>
+        </div>
+        <div class="inv-header-actions">
+          <button class="btn btn-secondary btn-sm" id="rerun-btn" data-nav="page-new">Re-run</button>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="inv-status-bar">
+        <div class="status-metric">
+          <div class="status-metric-label">Status</div>
+          <div class="status-metric-value">
+            <span class="status-dot-live"></span>
+            <span id="status-badge" class="status-badge"></span>
+          </div>
+        </div>
+        <div class="status-metric">
+          <div class="status-metric-label">Confidence</div>
+          <div class="status-metric-value" id="confidence-level-text"></div>
+        </div>
+        <div class="status-metric">
+          <div class="status-metric-label">Artifacts</div>
+          <div class="status-metric-value mono" id="coverage-fraction"></div>
+        </div>
+        <div class="status-metric">
+          <div class="status-metric-label">Findings</div>
+          <div class="status-metric-value" id="finding-stats"></div>
+        </div>
+      </div>
+
+      <!-- Primary Finding -->
+      <div class="inv-section">
+        <div class="finding-card" id="finding-card">
+          <div class="finding-card-label eyebrow">Primary Finding</div>
+          <h3 class="finding-card-title" id="primary-diagnosis-text"></h3>
+          <p class="finding-card-desc" id="diagnosis-summary"></p>
+          <div class="finding-card-meta">
+            <div class="confidence-indicator" id="confidence-indicator">
+              <svg class="confidence-ring" viewBox="0 0 60 60" width="56" height="56">
+                <circle cx="30" cy="30" r="26" fill="none" stroke="var(--border)" stroke-width="4"/>
+                <circle id="confidence-fill" cx="30" cy="30" r="26" fill="none" stroke="var(--primary)" stroke-width="4" stroke-linecap="round" stroke-dasharray="163.36" stroke-dashoffset="163.36" transform="rotate(-90 30 30)"/>
+              </svg>
+              <div class="confidence-indicator-text" id="confidence-pct"></div>
+            </div>
+            <div id="confidence-stats" class="confidence-stats"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Missing Info Banner -->
+      <div id="missing-info-banner" class="missing-info-banner" style="display:none">
+        <svg class="icon"><use href="#i-alert-triangle"/></svg>
+        <div>
+          <div id="missing-info-title" class="missing-info-title"></div>
+          <ul id="missing-info-list" class="missing-info-list"></ul>
+        </div>
+      </div>
+
+      <!-- Pre-investigation Checks -->
+      <div class="inv-section">
+        <h3 class="inv-section-title">
+          <svg class="icon icon-sm"><use href="#i-shield-check"/></svg>
+          Pre-investigation Checks
+        </h3>
+        <div id="preflight-list" class="preflight-list"></div>
+      </div>
+
+      <!-- Evidence Graph -->
+      <div class="inv-section">
+        <h3 class="inv-section-title">
+          <svg class="icon icon-sm"><use href="#i-eye"/></svg>
+          Evidence Graph
+        </h3>
+        <div class="evidence-graph-panel">
+          <div id="evidence-graph" class="evidence-graph">
+            <svg id="evidence-connectors" class="connectors" aria-hidden="true"></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evidence Explorer -->
+      <div class="inv-section">
+        <h3 class="inv-section-title">
+          <svg class="icon icon-sm"><use href="#i-scan"/></svg>
+          Evidence Explorer
+        </h3>
+        <div class="evidence-explorer">
+          <div class="evidence-explorer-sidebar">
+            <div class="evidence-explorer-sidebar-label eyebrow" style="padding:12px 16px 8px">Artifacts</div>
+            <div id="artifact-list"></div>
+          </div>
+          <div class="evidence-explorer-main">
+            <div id="evidence-inspector" data-open="false">
+              <div class="code-viewer">
+                <pre id="inspector-source" class="inspector-source mono"></pre>
+              </div>
+            </div>
+            <div id="source-placeholder" class="source-placeholder">
+              <svg class="icon icon-lg" style="opacity:0.3"><use href="#i-search"/></svg>
+              <p class="muted small">Select an artifact or click an evidence node to inspect source.</p>
+            </div>
+          </div>
+          <div class="evidence-explorer-detail">
+            <div class="evidence-detail-label">Source</div>
+            <div id="inspector-artifact" class="evidence-detail-value mono">—</div>
+            <div class="evidence-detail-label">Location</div>
+            <div id="inspector-location" class="evidence-detail-value mono">—</div>
+            <div class="evidence-detail-label">Significance</div>
+            <div id="inspector-significance" class="evidence-detail-value">—</div>
+            <button id="inspector-close" class="btn btn-ghost btn-sm" style="margin-top:16px">Clear selection</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Competing Hypotheses -->
+      <div class="inv-section">
+        <h3 class="inv-section-title">
+          <svg class="icon icon-sm"><use href="#i-git-branch"/></svg>
+          Alternative Explanations
+        </h3>
+        <div id="hypotheses-list" class="hypotheses-list"></div>
+      </div>
+
+      <!-- Recommended Next Checks -->
+      <div class="inv-section">
+        <h3 class="inv-section-title">
+          <svg class="icon icon-sm"><use href="#i-list-checks"/></svg>
+          Recommended Next Checks
+        </h3>
+        <div id="checks-list" class="next-checks"></div>
+      </div>
+
+      <!-- Ask ReproLens -->
+      <div class="inv-section">
+        <div class="ask-panel">
+          <div class="ask-panel-title">
+            <svg class="icon"><use href="#i-message-circle"/></svg>
+            Ask about this investigation
+          </div>
+          <div class="ask-suggestions">
+            <button class="ask-suggestion" data-question="Why is this the primary finding?">Why is this the primary finding?</button>
+            <button class="ask-suggestion" data-question="Show me the supporting evidence.">Show me the supporting evidence</button>
+            <button class="ask-suggestion" data-question="What else could cause this?">What else could cause this?</button>
+            <button class="ask-suggestion" data-question="What should I check next?">What should I check next?</button>
+          </div>
+          <div class="ask-input-row">
+            <input class="ask-input" id="ask-input" type="text" placeholder="Ask ReproLens about this investigation…" />
+            <button id="why-btn" class="btn btn-primary">Ask <svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></button>
+          </div>
+          <div id="explanation-block" class="ask-response" style="display:none">
+            <p id="explanation-text" class="ask-response-text"></p>
+            <div id="explanation-citations"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ INVESTIGATIONS HISTORY ============ -->
+  <section id="page-investigations" class="page">
+    <div class="section" style="padding-top:32px">
+      <div class="history-header">
+        <div>
+          <h1 class="page-title">Investigation History</h1>
+          <p class="page-subtitle">Review past investigations and their findings.</p>
+        </div>
+        <div class="search-input-wrap">
+          <svg class="icon icon-sm search-input-icon"><use href="#i-search"/></svg>
+          <input class="search-input" id="history-search" type="text" placeholder="Search investigations…" />
+        </div>
+      </div>
+      <div class="filter-tabs" id="history-filters">
+        <button class="filter-tab active" data-filter="all">All</button>
+        <button class="filter-tab" data-filter="failed">Issues Found</button>
+        <button class="filter-tab" data-filter="healthy">Healthy</button>
+        <button class="filter-tab" data-filter="insufficient_evidence">Insufficient Evidence</button>
+      </div>
+      <div id="all-investigations" class="card-grid"></div>
+      <div id="no-investigations-msg" class="empty-state" style="display:none">
+        <svg class="icon icon-lg empty-state-icon"><use href="#i-layers"/></svg>
+        <div class="empty-state-title">No investigations yet</div>
+        <div class="empty-state-desc">Your investigation workspace is empty. Upload your first experiment and let ReproLens trace the evidence.</div>
+        <button class="btn btn-primary" data-nav="page-new">
+          Start Investigation
+          <svg class="icon icon-sm"><use href="#i-arrow-right"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ EXAMPLE CASES ============ -->
+  <section id="page-examples" class="page">
+    <div class="section" style="padding-top:32px">
+      <h1 class="page-title">Example Cases</h1>
+      <p class="page-subtitle">Pre-loaded fixture files that run through the real investigation pipeline. Nothing is canned.</p>
+      <div class="card-grid" id="example-grid">
+        <div class="example-card" data-fixture="03_silent_generalization_failure">
+          <div class="status-dot status-suspicious"></div>
+          <div class="example-title">Silent generalization failure</div>
+          <p>Training completes with no exception, but validation performance quietly falls apart.</p>
+        </div>
+        <div class="example-card" data-fixture="01_dataset_config_mismatch">
+          <div class="status-dot status-suspicious"></div>
+          <div class="example-title">Dataset / config mismatch</div>
+          <p>The model is configured for one class count; the dataset reports another.</p>
+        </div>
+        <div class="example-card" data-fixture="02_environment_incompatibility">
+          <div class="status-dot status-failed"></div>
+          <div class="example-title">CUDA incompatibility</div>
+          <p>The runtime CUDA version doesn't match the compiled extension's target version.</p>
+        </div>
+        <div class="example-card" data-fixture="05_contradictory_evidence">
+          <div class="status-dot status-suspicious"></div>
+          <div class="example-title">Contradictory evidence</div>
+          <p>Three different class counts across three artifacts — no single confident guess.</p>
+        </div>
+        <div class="example-card" data-fixture="06_healthy_experiment">
+          <div class="status-dot status-healthy"></div>
+          <div class="example-title">Healthy experiment</div>
+          <p>Internally consistent artifacts — proves ReproLens doesn't manufacture problems.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ERROR ============ -->
+  <section id="page-error" class="page">
+    <div class="error-container">
+      <div class="error-icon">
+        <svg class="icon icon-lg"><use href="#i-alert-triangle"/></svg>
+      </div>
+      <h2 class="error-title">Investigation Interrupted</h2>
+      <p id="error-message" class="error-message"></p>
+      <p id="error-detail" class="error-detail"></p>
+      <p class="small muted" style="margin-bottom:24px">Investigation ID: <span id="error-investigation-id" class="mono"></span></p>
+      <button id="retry-btn" class="btn btn-primary">Retry Investigation <svg class="icon icon-sm"><use href="#i-arrow-right"/></svg></button>
+    </div>
+  </section>
+
+</main>
 
 <script src="config.js"></script>
 <script src="app.js"></script>

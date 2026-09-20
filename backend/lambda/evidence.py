@@ -9,7 +9,7 @@ import json
 import os
 
 _SCHEMA_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    os.path.dirname(__file__),
     "schemas",
     "diagnosis_schema.json",
 )

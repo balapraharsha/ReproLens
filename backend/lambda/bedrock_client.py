@@ -1,29 +1,21 @@
-"""
-Calls the OpenAI API directly (api.openai.com) instead of Amazon Bedrock.
-Same two hard rules as before:
-
-1. The response MUST be the schema-validated function call. If the model ever
-   returns free text instead, this raises BedrockDiagnosisError rather than
-   trying to regex a diagnosis out of prose.
-2. Every returned diagnosis is re-validated locally against the same JSON
-   Schema used to build the tool spec, using the `jsonschema` package.
-
-OPENAI_API_KEY and OPENAI_MODEL are read from the environment.
-"""
 import json
 import os
 import time
+import urllib.request
+import urllib.error
 
-import requests
 import jsonschema
 
-from evidence import DIAGNOSIS_JSON_SCHEMA, SYSTEM_PROMPT, TOOL_NAME, build_explain_system_prompt
-
-OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+from evidence import (
+    DIAGNOSIS_JSON_SCHEMA,
+    SYSTEM_PROMPT,
+    TOOL_NAME,
+    build_explain_system_prompt,
+)
 
 
 class BedrockDiagnosisError(Exception):
-    """Raised whenever the model does not return a schema-valid diagnosis."""
+    """Compatibility exception used by the existing Lambda handlers."""
 
 
 def _api_key():
@@ -33,118 +25,159 @@ def _api_key():
     return key
 
 
-def _model_id():
-    model_id = os.environ.get("OPENAI_MODEL")
-    if not model_id:
-        raise RuntimeError("OPENAI_MODEL environment variable is not set")
-    return model_id
+def _model():
+    return os.environ.get("OPENAI_MODEL", "gpt-4o")
 
 
-def _headers():
+def _post_openai(payload):
+    data = json.dumps(payload).encode("utf-8")
+
+    request = urllib.request.Request(
+        "https://api.openai.com/v1/responses",
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {_api_key()}",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise BedrockDiagnosisError(
+            f"OpenAI API HTTP {exc.code}: {body}"
+        ) from exc
+    except Exception as exc:
+        raise BedrockDiagnosisError(
+            f"OpenAI API request failed: {exc}"
+        ) from exc
+
+
+def _diagnosis_tool():
     return {
-        "Authorization": f"Bearer {_api_key()}",
-        "Content-Type": "application/json",
+        "type": "function",
+        "name": TOOL_NAME,
+        "description": (
+            "Return an evidence-grounded diagnosis of an ML experiment "
+            "by correlating configuration, environment, dataset metadata, "
+            "training logs, and traceback evidence."
+        ),
+        "parameters": DIAGNOSIS_JSON_SCHEMA,
+        "strict": True,
     }
 
 
-def _post(payload: dict) -> dict:
-    resp = requests.post(OPENAI_API_URL, headers=_headers(), json=payload, timeout=60)
-    if resp.status_code != 200:
-        raise BedrockDiagnosisError(f"OpenAI API error {resp.status_code}: {resp.text}")
-    return resp.json()
+def _extract_function_call(response):
+    for item in response.get("output", []):
+        if item.get("type") == "function_call":
+            if item.get("name") == TOOL_NAME:
+                arguments = item.get("arguments")
 
+                if not arguments:
+                    raise BedrockDiagnosisError(
+                        "OpenAI returned an empty diagnosis function call."
+                    )
 
-def _extract_tool_call(response: dict):
-    try:
-        message = response["choices"][0]["message"]
-    except (KeyError, IndexError) as e:
-        raise BedrockDiagnosisError(f"Unexpected OpenAI API response shape: {e}")
-
-    tool_calls = message.get("tool_calls") or []
-    for call in tool_calls:
-        if call.get("type") == "function" and call["function"].get("name") == TOOL_NAME:
-            try:
-                return json.loads(call["function"]["arguments"])
-            except json.JSONDecodeError as e:
-                raise BedrockDiagnosisError(f"Model returned invalid JSON arguments: {e}")
+                try:
+                    return json.loads(arguments)
+                except json.JSONDecodeError as exc:
+                    raise BedrockDiagnosisError(
+                        f"OpenAI returned invalid JSON arguments: {exc}"
+                    ) from exc
 
     raise BedrockDiagnosisError(
-        "The model did not return a report_experiment_diagnosis function call."
+        f"OpenAI did not return the required {TOOL_NAME} function call."
     )
 
 
-def _validate(diagnosis: dict):
+def _validate(diagnosis):
     try:
-        jsonschema.validate(instance=diagnosis, schema=DIAGNOSIS_JSON_SCHEMA)
-    except jsonschema.ValidationError as e:
-        raise BedrockDiagnosisError(f"Diagnosis failed local schema validation: {e.message}")
+        jsonschema.validate(
+            instance=diagnosis,
+            schema=DIAGNOSIS_JSON_SCHEMA,
+        )
+    except jsonschema.ValidationError as exc:
+        raise BedrockDiagnosisError(
+            f"Diagnosis failed local schema validation: {exc.message}"
+        ) from exc
+
     return diagnosis
 
 
-def diagnose(evidence_prompt_text: str) -> dict:
-    model_id = _model_id()
+def diagnose(evidence_prompt_text):
+    model = _model()
 
     payload = {
-        "model": model_id,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": evidence_prompt_text},
-        ],
-        "tools": [
-            {
-                "type": "function",
-                "function": {
-                    "name": TOOL_NAME,
-                    "description": (
-                        "Return an evidence-grounded diagnosis of an ML experiment by "
-                        "correlating configuration, environment, dataset metadata, "
-                        "training logs, and traceback evidence."
-                    ),
-                    "parameters": DIAGNOSIS_JSON_SCHEMA,
-                },
-            }
-        ],
-        "tool_choice": {"type": "function", "function": {"name": TOOL_NAME}},
+        "model": model,
+        "instructions": SYSTEM_PROMPT,
+        "input": evidence_prompt_text,
+        "tools": [_diagnosis_tool()],
+        "tool_choice": {
+            "type": "function",
+            "name": TOOL_NAME,
+        },
+        "parallel_tool_calls": False,
     }
 
     start = time.time()
-    response = _post(payload)
+
+    response = _post_openai(payload)
+
     latency = time.time() - start
 
-    diagnosis = _extract_tool_call(response)
+    diagnosis = _extract_function_call(response)
     diagnosis = _validate(diagnosis)
-    diagnosis["_meta"] = {"bedrock_latency_seconds": round(latency, 2), "model_id": model_id}
+
+    diagnosis["_meta"] = {
+        "llm_latency_seconds": round(latency, 2),
+        "model_id": model,
+        "provider": "openai",
+    }
+
     return diagnosis
 
 
-def explain(evidence_prompt_text: str, prior_diagnosis: dict, question: str) -> dict:
-    model_id = _model_id()
+def explain(
+    evidence_prompt_text,
+    prior_diagnosis,
+    question,
+):
+    model = _model()
 
     user_content = (
         evidence_prompt_text
         + "\n\nYour previous diagnosis was:\n"
-        + json.dumps({k: v for k, v in prior_diagnosis.items() if k != "_meta"}, indent=2)
-        + f"\n\nUser question: {question or 'Why did you reach this conclusion?'}"
-        + "\n\nAnswer using only the evidence bundle and the diagnosis above. "
-        "Cite specific evidence items in your answer."
+        + json.dumps(
+            {
+                k: v
+                for k, v in prior_diagnosis.items()
+                if k != "_meta"
+            },
+            indent=2,
+        )
+        + f"\n\nUser question: "
+        f"{question or 'Why did you reach this conclusion?'}"
+        + "\n\nAnswer using only the evidence bundle and the "
+        "diagnosis above. Cite specific evidence items in your answer."
     )
 
     payload = {
-        "model": model_id,
-        "messages": [
-            {"role": "system", "content": build_explain_system_prompt()},
-            {"role": "user", "content": user_content},
-        ],
+        "model": model,
+        "instructions": build_explain_system_prompt(),
+        "input": user_content,
     }
 
-    response = _post(payload)
+    response = _post_openai(payload)
 
-    try:
-        text = response["choices"][0]["message"].get("content") or ""
-    except (KeyError, IndexError) as e:
-        raise BedrockDiagnosisError(f"Unexpected OpenAI API response shape on explain call: {e}")
+    text = response.get("output_text", "")
 
     return {
         "explanation": text.strip(),
-        "cited_evidence": prior_diagnosis.get("evidence", []),
+        "cited_evidence": prior_diagnosis.get(
+            "evidence",
+            [],
+        ),
     }
