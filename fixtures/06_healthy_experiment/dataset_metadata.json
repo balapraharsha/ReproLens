@@ -1,0 +1,7 @@
+{
+  "dataset": "UrbanLiDAR",
+  "num_classes": 8,
+  "classes": ["ground", "building", "vegetation", "road", "vehicle", "water", "bridge", "other"],
+  "train_points": 12840000,
+  "validation_points": 3200000
+}

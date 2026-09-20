@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ReproLens — Cross-Artifact Investigation for ML Experiments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- Icon sprite -->
+<svg width="0" height="0" style="position:absolute">
+<defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5M5.5 10v9h13v-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5ZM3 13l9 5 9-5M3 8v5M21 8v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.8L12 17.5 10.2 11.8 4.5 10l5.7-1.4L12 3Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8v8l-9 5-9-5V8l9-5 9 5ZM3 8l9 5 9-5M12 13v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6V3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M11 20V4M18 20v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 5.5V18c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5V5.5M4.5 12c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+<symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+<symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.5 22 20H2L12 3.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.2v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 12.5l2.5 2.5L16.5 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2.5v2.3M12 19.2v2.3M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.3M19.2 12h2.3M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.5L4.5 19a1.5 1.5 0 0 0 1.3 2.2h12.4a1.5 1.5 0 0 0 1.3-2.2L14 9.5V3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+<linearGradient id="grad-line" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#4f46e5"/>
+  <stop offset="1" stop-color="#7c3aed"/>
+</linearGradient>
+</defs>
+</svg>
+
+<div id="shell">
+
+  <aside id="sidenav">
+    <div class="brand-row">
+      <span class="brand-mark"><svg class="icon"><use href="#i-spark"/></svg></span>
+      <div>
+        <div class="brand-name">ReproLens</div>
+        <div class="brand-sub">Find the real cause. Faster.</div>
+      </div>
+    </div>
+
+    <ul class="nav-list">
+      <li data-page="page-home" class="nav-item active"><svg class="icon"><use href="#i-home"/></svg>Home</li>
+      <li data-page="page-new" class="nav-item"><svg class="icon"><use href="#i-plus"/></svg>New Investigation</li>
+      <li data-page="page-investigations" class="nav-item"><svg class="icon"><use href="#i-layers"/></svg>Investigations</li>
+      <li data-page="page-examples" class="nav-item"><svg class="icon"><use href="#i-grid"/></svg>Example Cases</li>
+      <li data-page="page-how" class="nav-item"><svg class="icon"><use href="#i-spark"/></svg>How It Works</li>
+      <li data-page="page-aws" class="nav-item"><svg class="icon"><use href="#i-box"/></svg>AWS Architecture</li>
+      <li data-page="page-about" class="nav-item"><svg class="icon"><use href="#i-info"/></svg>About</li>
+    </ul>
+
+    <div class="nav-footer">
+      <button id="theme-toggle" class="theme-toggle" title="Toggle theme">
+        <svg class="icon"><use href="#i-sun"/></svg>
+        <svg class="icon"><use href="#i-moon"/></svg>
+      </button>
+      <span class="muted small">v1.0 · no login required</span>
+    </div>
+  </aside>
+
+  <div id="main-column">
+
+    <header id="topbar">
+      <div class="search-box">
+        <svg class="icon"><use href="#i-search"/></svg>
+        <input id="global-search" type="text" placeholder="Search investigations or example cases…" />
+      </div>
+      <div class="topbar-right">
+        <span id="connection-badge" class="conn-badge conn-idle">● Idle</span>
+        <span id="investigation-id-badge" class="mono muted small"></span>
+      </div>
+    </header>
+
+    <main id="content">
+
+      <!-- ============ HOME ============ -->
+      <section id="page-home" class="page active">
+        <div class="hero">
+          <div class="hero-glow"></div>
+          <div class="hero-text">
+            <div class="eyebrow">ML experiments leave evidence.</div>
+            <h1>ReproLens<br/><span class="grad-text">connects it.</span></h1>
+            <p class="hero-sub">Upload your experiment artifacts and get an evidence-backed diagnosis — every claim traceable to the file and line that supports it.</p>
+            <div class="hero-actions">
+              <button class="btn-primary btn-lg" data-nav="page-new"><svg class="icon"><use href="#i-plus"/></svg>Start new investigation</button>
+              <button class="btn-secondary btn-lg" data-nav="page-examples"><svg class="icon"><use href="#i-flask"/></svg>Try an example case</button>
+            </div>
+          </div>
+          <div class="hero-diagram" id="hero-diagram">
+            <svg id="hero-connectors" class="connectors"></svg>
+            <div class="hero-chips">
+              <div class="hero-chip c-indigo" data-node="hc1"><svg class="icon"><use href="#i-file"/></svg>Config</div>
+              <div class="hero-chip c-blue" data-node="hc2"><svg class="icon"><use href="#i-chart"/></svg>Training Logs</div>
+              <div class="hero-chip c-teal" data-node="hc3"><svg class="icon"><use href="#i-db"/></svg>Dataset</div>
+              <div class="hero-chip c-amber" data-node="hc4"><svg class="icon"><use href="#i-cpu"/></svg>Environment</div>
+              <div class="hero-chip c-red" data-node="hc5"><svg class="icon"><use href="#i-warn"/></svg>Tracebacks</div>
+            </div>
+            <div class="hero-caption left">Scattered artifacts</div>
+            <div class="hero-orb" data-node="hero-orb"><span>ReproLens</span></div>
+            <div class="hero-output" data-node="hero-output"><svg class="icon"><use href="#i-spark"/></svg>Clear insights</div>
+            <div class="hero-caption right">Evidence → Insight → Clarity</div>
+          </div>
+        </div>
+
+        <div class="section-row">
+          <h2>Recent investigations</h2>
+          <button class="link-btn" data-nav="page-investigations">View all <svg class="icon"><use href="#i-arrow-right"/></svg></button>
+        </div>
+        <div id="recent-investigations" class="card-grid"></div>
+
+        <div class="section-row" style="margin-top:2.5rem;">
+          <div class="eyebrow">How it works</div>
+        </div>
+        <h2 class="how-heading">A structured investigation, not just an answer.</h2>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-icon c-indigo"><svg class="icon"><use href="#i-file"/></svg></div>
+            <div class="step-num">1</div>
+            <div class="step-title">Upload</div>
+            <p>Add your experiment artifacts — config, logs, dataset metadata, environment, traceback.</p>
+          </div>
+          <div class="step-arrow"><svg class="icon"><use href="#i-arrow-right"/></svg></div>
+          <div class="step-card">
+            <div class="step-icon c-blue"><svg class="icon"><use href="#i-chart"/></svg></div>
+            <div class="step-num">2</div>
+            <div class="step-title">Analyze</div>
+            <p>Deterministic checks run first to establish facts, then Bedrock investigates the relationships.</p>
+          </div>
+          <div class="step-arrow"><svg class="icon"><use href="#i-arrow-right"/></svg></div>
+          <div class="step-card">
+            <div class="step-icon c-amber"><svg class="icon"><use href="#i-spark"/></svg></div>
+            <div class="step-num">3</div>
+            <div class="step-title">Diagnose</div>
+            <p>Get an evidence-backed diagnosis with a stated confidence level and cited sources.</p>
+          </div>
+          <div class="step-arrow"><svg class="icon"><use href="#i-arrow-right"/></svg></div>
+          <div class="step-card">
+            <div class="step-icon c-teal"><svg class="icon"><use href="#i-check"/></svg></div>
+            <div class="step-num">4</div>
+            <div class="step-title">Verify</div>
+            <p>Explore the evidence graph, competing hypotheses, and recommended checks yourself.</p>
+          </div>
+        </div>
+
+        <blockquote class="pull-quote">"ReproLens doesn't just tell you what happened. It shows you why — with real evidence."</blockquote>
+      </section>
+
+      <!-- ============ NEW INVESTIGATION ============ -->
+      <section id="page-new" class="page">
+        <h1 class="page-title">New investigation</h1>
+        <div class="panel case-file">
+          <label for="experiment-name">Experiment name</label>
+          <input id="experiment-name" type="text" placeholder="e.g. DALES semantic segmentation" />
+
+          <div class="upload-label-row">
+            <label>Experiment evidence</label>
+            <span class="muted small" id="upload-count">0 of 5 uploaded</span>
+          </div>
+          <div class="upload-grid" id="upload-grid"></div>
+
+          <button id="investigate-btn" class="btn-primary btn-lg" disabled>Investigate <svg class="icon"><use href="#i-arrow-right"/></svg></button>
+          <p class="hint">At least one artifact is required. Missing artifacts don't fail the investigation — they surface as missing information in the result.</p>
+        </div>
+      </section>
+
+      <!-- ============ PROGRESS ============ -->
+      <section id="page-progress" class="page">
+        <h1 class="page-title" id="progress-title">Investigating…</h1>
+
+        <div class="pflow" id="pflow">
+          <svg id="pflow-connectors" class="connectors"></svg>
+          <div class="pflow-artifacts" id="pflow-artifacts"></div>
+          <div class="pflow-node" data-flow="bundle" data-node="pf-bundle"><svg class="icon"><use href="#i-layers"/></svg>Evidence bundle</div>
+          <div class="pflow-node" data-flow="preflight" data-node="pf-preflight"><svg class="icon"><use href="#i-check"/></svg>Preflight checks</div>
+          <div class="pflow-node" data-flow="bedrock" data-node="pf-bedrock"><svg class="icon"><use href="#i-spark"/></svg>Bedrock reasoning</div>
+        </div>
+
+        <div class="progress-stages">
+          <div class="progress-stage" id="pstage-1" data-state="pending">
+            <div class="progress-stage-num">01</div>
+            <div class="progress-stage-dot"></div>
+            <div class="progress-stage-label">Ingesting</div>
+            <div class="progress-stage-meta" id="pmeta-1">artifacts received</div>
+          </div>
+          <div class="progress-stage" id="pstage-2" data-state="pending">
+            <div class="progress-stage-num">02</div>
+            <div class="progress-stage-dot"></div>
+            <div class="progress-stage-label">Correlating</div>
+            <div class="progress-stage-meta" id="pmeta-2">deterministic checks</div>
+          </div>
+          <div class="progress-stage" id="pstage-3" data-state="pending">
+            <div class="progress-stage-num">03</div>
+            <div class="progress-stage-dot"></div>
+            <div class="progress-stage-label">Investigating</div>
+            <div class="progress-stage-meta" id="pmeta-3">Bedrock reasoning</div>
+          </div>
+        </div>
+        <p class="hint">Each stage only turns on after the backend has actually completed it. Nothing here is simulated.</p>
+      </section>
+
+      <!-- ============ RESULT ============ -->
+      <section id="page-result" class="page">
+        <div id="result-zone">
+
+          <div id="result-case" class="result-col">
+            <div class="result-col-label">Case</div>
+            <h3 class="col-h3">Pre-investigation checks</h3>
+            <div id="preflight-list" class="preflight-list"></div>
+
+            <h3 class="col-h3">Competing hypotheses</h3>
+            <div id="hypotheses-list" class="hypotheses-list"></div>
+
+            <h3 class="col-h3">Recommended checks</h3>
+            <ul id="checks-list" class="checks-list"></ul>
+          </div>
+
+          <div id="result-main" class="result-col">
+            <div class="result-col-label">Investigation</div>
+
+            <div class="finding-card">
+              <div class="finding-top">
+                <span id="status-badge" class="status-badge"></span>
+                <span id="coverage-fraction" class="mono muted small"></span>
+              </div>
+              <h2 id="primary-diagnosis-text"></h2>
+              <p id="diagnosis-summary" class="diagnosis-summary"></p>
+              <div class="finding-stats" id="finding-stats"></div>
+            </div>
+
+            <div class="confidence-panel">
+              <div class="confidence-label-row">
+                <span>Confidence</span>
+                <span id="confidence-level-text" class="mono"></span>
+              </div>
+              <div class="confidence-bar"><div id="confidence-fill" class="confidence-fill"></div></div>
+              <div class="confidence-stats" id="confidence-stats"></div>
+            </div>
+
+            <div id="missing-info-banner" class="missing-info-banner" style="display:none;">
+              <svg class="icon"><use href="#i-warn"/></svg>
+              <div>
+                <div id="missing-info-title"></div>
+                <ul id="missing-info-list"></ul>
+              </div>
+            </div>
+
+            <h3 class="col-h3">Evidence graph</h3>
+            <div class="evidence-graph-panel">
+              <div id="evidence-graph" class="evidence-graph">
+                <svg id="evidence-connectors" class="connectors"></svg>
+              </div>
+            </div>
+
+            <button id="why-btn" class="btn-secondary">Why this diagnosis?</button>
+            <div id="explanation-block" class="explanation-block" style="display:none;">
+              <div class="explanation-title">Why?</div>
+              <p id="explanation-text"></p>
+            </div>
+
+            <details class="aws-disclosure">
+              <summary>▸ Powered by AWS</summary>
+              <div class="aws-flow">
+                <div class="aws-node">Amplify</div>
+                <div class="aws-arrow">↓</div>
+                <div class="aws-node">API Gateway</div>
+                <div class="aws-arrow">↓</div>
+                <div class="aws-node">Lambda</div>
+                <div class="aws-branches">
+                  <div class="aws-node small">S3</div>
+                  <div class="aws-node small">Preflight engine</div>
+                  <div class="aws-node small accent">Bedrock</div>
+                  <div class="aws-node small">DynamoDB</div>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <div class="result-col result-col-source">
+            <div class="result-col-label">Source</div>
+            <aside id="evidence-inspector" class="evidence-inspector" data-open="false">
+              <div class="inspector-header">
+                <span>Source</span>
+                <button id="inspector-close" class="inspector-close">✕</button>
+              </div>
+              <div id="inspector-artifact" class="inspector-artifact mono"></div>
+              <div id="inspector-location" class="inspector-location mono"></div>
+              <pre id="inspector-source" class="inspector-source mono"></pre>
+              <div id="inspector-significance" class="inspector-significance"></div>
+            </aside>
+            <div id="source-placeholder" class="source-placeholder">
+              <svg class="icon"><use href="#i-search"/></svg>
+              <p>Click any evidence node in the graph to inspect its exact source line.</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ INVESTIGATIONS (full history) ============ -->
+      <section id="page-investigations" class="page">
+        <h1 class="page-title">Investigations</h1>
+        <div id="all-investigations" class="card-grid"></div>
+        <p id="no-investigations-msg" class="hint" style="display:none;">No investigations yet — start one, or try an example case.</p>
+      </section>
+
+      <!-- ============ EXAMPLE CASES ============ -->
+      <section id="page-examples" class="page">
+        <h1 class="page-title">Example cases</h1>
+        <p class="hint" style="margin-bottom:1.5rem;">These load real fixture files through the actual S3 → Lambda → Bedrock pipeline — nothing here is a canned response.</p>
+        <div class="card-grid" id="example-grid">
+          <div class="example-card" data-fixture="03_silent_generalization_failure">
+            <div class="status-dot status-suspicious"></div>
+            <div class="example-title">Silent generalization failure</div>
+            <p>Training completes with no exception, but validation performance quietly falls apart.</p>
+          </div>
+          <div class="example-card" data-fixture="01_dataset_config_mismatch">
+            <div class="status-dot status-suspicious"></div>
+            <div class="example-title">Dataset / config mismatch</div>
+            <p>The model is configured for one class count; the dataset reports another.</p>
+          </div>
+          <div class="example-card" data-fixture="02_environment_incompatibility">
+            <div class="status-dot status-failed"></div>
+            <div class="example-title">CUDA incompatibility</div>
+            <p>The runtime CUDA version doesn't match the compiled extension's target version.</p>
+          </div>
+          <div class="example-card" data-fixture="05_contradictory_evidence">
+            <div class="status-dot status-suspicious"></div>
+            <div class="example-title">Contradictory evidence</div>
+            <p>Three different class counts across three artifacts — no single confident guess.</p>
+          </div>
+          <div class="example-card" data-fixture="06_healthy_experiment">
+            <div class="status-dot status-healthy"></div>
+            <div class="example-title">Healthy experiment</div>
+            <p>Internally consistent artifacts — proves ReproLens doesn't manufacture problems.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ HOW IT WORKS ============ -->
+      <section id="page-how" class="page">
+        <h1 class="page-title">How it works</h1>
+        <div class="prose">
+          <p>Debugging rarely fails because there's no information — it fails because the information is scattered. ReproLens takes five artifacts from an ML experiment and correlates them, rather than asking a model to summarize each one in isolation.</p>
+          <h3>1. Deterministic checks run first</h3>
+          <p>Before Bedrock ever sees the evidence, rule-based checks compare facts directly — for example, the class count in your config against the class count in your dataset metadata. These are verified facts, not AI guesses.</p>
+          <h3>2. Bedrock investigates the relationships</h3>
+          <p>Amazon Bedrock, using strict tool use, receives the deterministic findings plus the full evidence bundle and returns a structured diagnosis — every claim citing a specific artifact and field.</p>
+          <h3>3. You verify it yourself</h3>
+          <p>Every evidence node in the graph is clickable and opens the exact source line. Competing hypotheses are shown, not hidden. When the evidence genuinely isn't enough, ReproLens says so instead of guessing.</p>
+        </div>
+      </section>
+
+      <!-- ============ AWS ARCHITECTURE ============ -->
+      <section id="page-aws" class="page">
+        <h1 class="page-title">AWS architecture</h1>
+        <div class="aws-flow standalone">
+          <div class="aws-node">Browser</div>
+          <div class="aws-arrow">↓</div>
+          <div class="aws-node">Amplify Hosting</div>
+          <div class="aws-arrow">↓</div>
+          <div class="aws-node">API Gateway</div>
+          <div class="aws-arrow">↓</div>
+          <div class="aws-node">Lambda</div>
+          <div class="aws-branches">
+            <div class="aws-node small">S3 — artifacts</div>
+            <div class="aws-node small">Preflight engine</div>
+            <div class="aws-node small accent">Bedrock — diagnosis</div>
+            <div class="aws-node small">DynamoDB — history, async</div>
+          </div>
+        </div>
+        <div class="prose">
+          <p>Bedrock is the reasoning engine, not decoration — every diagnosis is a schema-constrained tool call, validated locally against the same JSON Schema used to build the request. DynamoDB history writes are deliberately kept off the critical path: a history failure never blocks a diagnosis response.</p>
+        </div>
+      </section>
+
+      <!-- ============ ABOUT ============ -->
+      <section id="page-about" class="page">
+        <h1 class="page-title">About</h1>
+        <div class="prose">
+          <p>ReproLens was built for First Commit (AWS × WeMakeDevs, Bharat Builds Tour), Ship It track.</p>
+          <p><strong>Honestly stated limitations:</strong> validated against 6 synthetic fixtures, not real-world data. Scoped to PyTorch-shaped config/log conventions. No authentication — this demo has no login because none exists yet, not because it was hidden.</p>
+        </div>
+      </section>
+
+      <!-- ============ ERROR ============ -->
+      <section id="page-error" class="page">
+        <h1 class="page-title error-title">Investigation failed</h1>
+        <p id="error-message"></p>
+        <p id="error-detail" class="hint"></p>
+        <p class="hint">Investigation ID: <span id="error-investigation-id" class="mono"></span></p>
+        <button id="retry-btn" class="btn-primary">Try again</button>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

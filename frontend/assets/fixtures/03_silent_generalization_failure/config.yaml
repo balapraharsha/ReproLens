@@ -1,0 +1,9 @@
+experiment:
+  name: landcover_segmentation
+model:
+  name: PointCloudNet
+  num_classes: 8
+training:
+  epochs: 50
+  batch_size: 16
+  learning_rate: 0.001

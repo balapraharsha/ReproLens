@@ -1,0 +1,6 @@
+{
+  "dataset": "UrbanLiDAR",
+  "num_classes": 8,
+  "points": 18200000,
+  "status": "validated"
+}

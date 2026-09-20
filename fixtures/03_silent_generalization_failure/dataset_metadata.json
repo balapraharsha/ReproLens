@@ -1,0 +1,12 @@
+{
+  "train": {
+    "points": 12000000,
+    "dominant_class": "building",
+    "dominant_class_percentage": 71.4
+  },
+  "validation": {
+    "points": 3000000,
+    "dominant_class": "vegetation",
+    "dominant_class_percentage": 38.7
+  }
+}

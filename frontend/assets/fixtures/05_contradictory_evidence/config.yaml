@@ -1,0 +1,5 @@
+experiment:
+  name: multiclass_lidar
+model:
+  name: PointCloudNet
+  num_classes: 8

@@ -1,0 +1,8 @@
+2026-09-17 09:00:00 INFO Model configured for 8 classes
+2026-09-17 09:00:05 INFO Dataset reports 8 unique labels -- matches configuration
+2026-09-17 09:00:10 INFO Training started
+Epoch 20 train_loss=0.51 train_accuracy=0.86 val_mIoU=0.71
+Epoch 40 train_loss=0.28 train_accuracy=0.91 val_mIoU=0.76
+Epoch 60 train_loss=0.19 train_accuracy=0.93 val_mIoU=0.78
+Epoch 80 train_loss=0.15 train_accuracy=0.94 val_mIoU=0.79
+Epoch 100 train_loss=0.13 train_accuracy=0.95 val_mIoU=0.80

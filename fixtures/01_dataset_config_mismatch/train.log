@@ -1,0 +1,7 @@
+2026-09-17 10:01:12 INFO Loading dataset: UrbanLiDAR
+2026-09-17 10:01:15 INFO Model configured for 8 classes
+2026-09-17 10:01:21 INFO Dataset reports 9 unique labels
+2026-09-17 10:01:21 WARNING Label count differs from model configuration
+2026-09-17 10:01:22 INFO Training started
+2026-09-17 10:10:55 INFO val_mIoU=0.31
+2026-09-17 10:10:55 WARNING Validation performance significantly below expected baseline

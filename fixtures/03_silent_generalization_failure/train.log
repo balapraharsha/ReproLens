@@ -1,0 +1,24 @@
+Epoch 10
+train_loss=0.71
+train_accuracy=0.82
+val_mIoU=0.48
+
+Epoch 20
+train_loss=0.42
+train_accuracy=0.91
+val_mIoU=0.43
+
+Epoch 30
+train_loss=0.24
+train_accuracy=0.96
+val_mIoU=0.39
+
+Epoch 40
+train_loss=0.15
+train_accuracy=0.98
+val_mIoU=0.36
+
+Epoch 50
+train_loss=0.09
+train_accuracy=0.99
+val_mIoU=0.34

@@ -1,0 +1,4 @@
+2026-09-17 15:00:00 INFO Model configured for 8 classes
+2026-09-17 15:00:05 INFO Dataset metadata reports 9 classes
+2026-09-17 15:00:10 INFO Label parser detected 10 unique label IDs in raw annotations
+2026-09-17 15:00:10 WARNING Three different class counts observed across artifacts: config=8, metadata=9, parsed_labels=10

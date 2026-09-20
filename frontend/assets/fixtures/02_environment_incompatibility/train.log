@@ -1,0 +1,6 @@
+2026-09-17 11:02:01 INFO Python 3.11
+2026-09-17 11:02:01 INFO CUDA runtime: 12.4
+2026-09-17 11:02:04 INFO Importing spconv
+2026-09-17 11:02:04 ERROR Failed to load CUDA extension
+2026-09-17 11:02:04 ERROR CUDA runtime version 12.4 does not match compiled extension CUDA version 11.8
+2026-09-17 11:02:04 ERROR Training aborted

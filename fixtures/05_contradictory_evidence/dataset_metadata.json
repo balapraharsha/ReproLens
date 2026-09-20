@@ -1,0 +1,5 @@
+{
+  "dataset": "MixedLiDAR",
+  "num_classes": 9,
+  "classes": ["ground","building","vegetation","road","vehicle","water","bridge","other","rail"]
+}

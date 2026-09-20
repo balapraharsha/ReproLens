@@ -1,0 +1,11 @@
+experiment:
+  name: pointcloud_segmentation
+environment:
+  python: "3.11"
+  cuda: "12.4"
+dependencies:
+  torch: "2.6.0"
+  spconv: "2.3.6"
+training:
+  batch_size: 4
+  epochs: 50

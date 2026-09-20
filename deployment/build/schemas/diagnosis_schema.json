@@ -1,0 +1,58 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "experiment_status",
+    "primary_diagnosis",
+    "confidence",
+    "severity",
+    "competing_hypotheses",
+    "evidence",
+    "recommended_checks",
+    "missing_information"
+  ],
+  "properties": {
+    "experiment_status": {
+      "type": "string",
+      "enum": ["failed", "degraded", "suspicious", "healthy", "insufficient_evidence"]
+    },
+    "primary_diagnosis": { "type": "string" },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+    "severity": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+    "competing_hypotheses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["hypothesis", "confidence", "reason"],
+        "properties": {
+          "hypothesis": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["artifact", "field_or_location", "observed_value", "significance"],
+        "properties": {
+          "artifact": { "type": "string" },
+          "field_or_location": { "type": "string" },
+          "observed_value": { "type": "string" },
+          "significance": { "type": "string" }
+        }
+      }
+    },
+    "recommended_checks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "missing_information": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
