@@ -6,7 +6,7 @@
 
 **Cross-artifact investigation for ML experiments, running on a serverless AWS stack.**
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Amplify-FF9900?style=for-the-badge&logo=awsamplify&logoColor=white)](https://main.d1dj2tq8nc6538.amplifyapp.com/)
+[![Demo](https://img.shields.io/badge/Live%20Demo-Amplify-FF9900?style=for-the-badge&logo=awsamplify&logoColor=white)](https://main.d1dj2tq8nc6538.amplifyapp.com/)
 [![Demo Video](https://img.shields.io/badge/Demo%20Video-3%20min-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/yB1RJvjkTu8)
 [![Blog](https://img.shields.io/badge/Blog-AWS%20Builder%20Center-232F3E?style=for-the-badge&logo=amazonaws&logoColor=white)](https://builder.aws.com/content/3JbOsrpkDMjZqut6Tzn77nWQD6T/reprolens-dont-ask-an-llm-what-happened-make-it-prove-what-happened)
 
